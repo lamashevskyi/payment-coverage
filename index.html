@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Coverage — Network Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f3ee; --panel:#ffffff; --ink:#16150f; --muted:#6f6c5e;
+    --line:#e3e1d6; --line-strong:#16150f;
+    --accent:#ff2d6b;
+    --bank:#4f46e5; --card:#e11d63; --ewallet:#d97706; --cash:#059669; --mobile:#0891b2; --crypto:#9333ea;
+    --blocked:#9a9486;
+    --shadow:0 1px 0 rgba(0,0,0,.04), 0 8px 30px -18px rgba(0,0,0,.25);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Hanken Grotesk",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 1px 1px, rgba(0,0,0,.035) 1px, transparent 0);
+    background-size:22px 22px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+  .brand h1{font-family:"Bricolage Grotesque";font-weight:800;font-size:30px;line-height:1;letter-spacing:-.02em;margin:0}
+  .brand p{margin:7px 0 0;color:var(--muted);font-size:13.5px;max-width:46ch}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .tab{border:0;background:transparent;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;
+       color:var(--muted);padding:8px 16px;border-radius:999px;letter-spacing:.01em;transition:.15s}
+  .tab .n{font-weight:600;opacity:.6;margin-left:6px;font-size:12px}
+  .tab[aria-selected="true"]{background:var(--ink);color:#fff}
+  .tab[aria-selected="true"] .n{opacity:.7}
+  .search{flex:1;min-width:200px;position:relative}
+  .search input{width:100%;font-family:inherit;font-size:14px;padding:11px 14px 11px 38px;border-radius:999px;
+     border:1px solid var(--line);background:var(--panel);color:var(--ink);outline:none}
+  .search input:focus{border-color:var(--line-strong)}
+  .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.45}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;
+          background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 15px;user-select:none;white-space:nowrap}
+  .toggle input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;margin:0}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+  @media(max-width:760px){.layout{grid-template-columns:1fr}}
+
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+        max-height:72vh;overflow:auto}
+  .list .grouphead{position:sticky;top:0;background:var(--panel);font-size:11px;font-weight:700;letter-spacing:.12em;
+        text-transform:uppercase;color:var(--muted);padding:12px 16px 6px;border-bottom:1px solid var(--line)}
+  .citem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 16px;cursor:pointer;
+        border-bottom:1px solid var(--line);font-size:14px;font-weight:500;transition:.12s}
+  .citem:last-child{border-bottom:0}
+  .citem:hover{background:#faf9f3}
+  .citem[aria-selected="true"]{background:var(--ink);color:#fff}
+  .citem .mini{display:flex;gap:3px}
+  .citem .mini i{width:7px;height:7px;border-radius:2px;display:block}
+  .citem.restricted{color:var(--blocked)}
+  .citem.none{color:#b8b3a5}
+  .citem.restricted[aria-selected="true"],.citem.none[aria-selected="true"]{color:#fff}
+  .lock{font-size:11px}
+  .empty{padding:24px 16px;color:var(--muted);font-size:13px}
+
+  .detail{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+        min-height:420px;padding:26px 28px}
+  .detail .place{font-family:"Bricolage Grotesque";font-weight:800;font-size:34px;letter-spacing:-.02em;line-height:1;margin:0}
+  .detail .region-pill{display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.1em;
+        text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+  .rule{height:2px;background:var(--ink);margin:20px 0;border-radius:2px}
+  .dir{margin-top:22px}
+  .dir h3{font-family:"Bricolage Grotesque";font-weight:700;font-size:18px;margin:0 0 12px;letter-spacing:-.01em}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{color:#fff;font-weight:700;font-size:12px;letter-spacing:.02em;padding:8px 14px;border-radius:9px}
+  .chip.bank{background:var(--bank)} .chip.card{background:var(--card)}
+  .chip.ewallet{background:var(--ewallet)} .chip.cash{background:var(--cash)} .chip.mobile{background:var(--mobile)} .chip.crypto{background:var(--crypto)}
+  .none{color:var(--muted);font-size:13px;font-style:italic}
+
+  .methods{display:flex;flex-direction:column;gap:8px}
+  .m{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fcfbf6}
+  .m .tag{width:9px;height:34px;border-radius:4px;flex:none}
+  .m .tag.bank{background:var(--bank)} .m .tag.card{background:var(--card)}
+  .m .tag.ewallet{background:var(--ewallet)} .m .tag.cash{background:var(--cash)} .m .tag.mobile{background:var(--mobile)} .m .tag.crypto{background:var(--crypto)}
+  .m .body{flex:1;min-width:0}
+  .m .name{font-weight:700;font-size:14px}
+  .m .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .m .psp{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+          border:1px solid var(--line);border-radius:6px;padding:4px 8px;white-space:nowrap}
+
+  .blockbox{margin-top:22px;border:1.5px solid var(--accent);background:#fff0f5;border-radius:12px;padding:18px 20px}
+  .blockbox .h{font-family:"Bricolage Grotesque";font-weight:800;font-size:16px;color:var(--accent);display:flex;align-items:center;gap:8px}
+  .blockbox p{margin:8px 0 0;font-size:13.5px;color:#7a2540}
+  .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:380px;text-align:center;color:var(--muted)}
+  .placeholder .big{font-family:"Bricolage Grotesque";font-weight:700;font-size:22px;color:var(--ink);margin-bottom:6px}
+  .foot{margin-top:18px;font-size:11.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Payment Coverage</h1>
+      <p>Where we can serve, and how. Pick a region, choose a country, see pay-in and payout methods. License restrictions always win.</p>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--bank)"></i>Bank</span>
+      <span><i class="dot" style="background:var(--card)"></i>Cards</span>
+      <span><i class="dot" style="background:var(--ewallet)"></i>E-Wallet</span>
+      <span><i class="dot" style="background:var(--mobile)"></i>Mobile Money</span>
+      <span><i class="dot" style="background:var(--cash)"></i>Cash</span>
+      <span><i class="dot" style="background:var(--crypto)"></i>Crypto</span>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" id="tabs"></div>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" placeholder="Search any country…" autocomplete="off">
+    </div>
+    <label class="toggle"><input type="checkbox" id="toggleNames"><span>Method names</span></label>
+  </div>
+
+  <div class="layout">
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail"></div>
+  </div>
+</div>
+
+<script>const DATA = {"countries":{"AW":{"name":"Aruba","region":"AMERICAS"},"AF":{"name":"Afghanistan","region":"APAC"},"AO":{"name":"Angola","region":"EMEA"},"AI":{"name":"Anguilla","region":"AMERICAS"},"AX":{"name":"Åland Islands","region":"EMEA"},"AL":{"name":"Albania","region":"EMEA"},"AD":{"name":"Andorra","region":"EMEA"},"AE":{"name":"United Arab Emirates","region":"APAC"},"AR":{"name":"Argentina","region":"AMERICAS"},"AM":{"name":"Armenia","region":"APAC"},"AS":{"name":"American Samoa","region":"APAC"},"AQ":{"name":"Antarctica","region":"APAC"},"TF":{"name":"French Southern Territories","region":"APAC"},"AG":{"name":"Antigua and Barbuda","region":"AMERICAS"},"AU":{"name":"Australia","region":"APAC"},"AT":{"name":"Austria","region":"EMEA"},"AZ":{"name":"Azerbaijan","region":"APAC"},"BI":{"name":"Burundi","region":"EMEA"},"BE":{"name":"Belgium","region":"EMEA"},"BJ":{"name":"Benin","region":"EMEA"},"BQ":{"name":"Bonaire, Sint Eustatius and Saba","region":"AMERICAS"},"BF":{"name":"Burkina Faso","region":"EMEA"},"BD":{"name":"Bangladesh","region":"APAC"},"BG":{"name":"Bulgaria","region":"EMEA"},"BH":{"name":"Bahrain","region":"APAC"},"BS":{"name":"Bahamas","region":"AMERICAS"},"BA":{"name":"Bosnia and Herzegovina","region":"EMEA"},"BL":{"name":"Saint Barthélemy","region":"AMERICAS"},"BY":{"name":"Belarus","region":"EMEA"},"BZ":{"name":"Belize","region":"AMERICAS"},"BM":{"name":"Bermuda","region":"AMERICAS"},"BO":{"name":"Bolivia","region":"AMERICAS"},"BR":{"name":"Brazil","region":"AMERICAS"},"BB":{"name":"Barbados","region":"AMERICAS"},"BN":{"name":"Brunei Darussalam","region":"APAC"},"BT":{"name":"Bhutan","region":"APAC"},"BV":{"name":"Bouvet Island","region":"APAC"},"BW":{"name":"Botswana","region":"EMEA"},"CF":{"name":"Central African Republic","region":"EMEA"},"CA":{"name":"Canada","region":"AMERICAS"},"CC":{"name":"Cocos (Keeling) Islands","region":"APAC"},"CH":{"name":"Switzerland","region":"EMEA"},"CL":{"name":"Chile","region":"AMERICAS"},"CN":{"name":"China","region":"APAC"},"CI":{"name":"Côte d'Ivoire","region":"EMEA"},"CM":{"name":"Cameroon","region":"EMEA"},"CD":{"name":"Congo, The Democratic Republic of the","region":"EMEA"},"CG":{"name":"Congo","region":"EMEA"},"CK":{"name":"Cook Islands","region":"APAC"},"CO":{"name":"Colombia","region":"AMERICAS"},"KM":{"name":"Comoros","region":"EMEA"},"CV":{"name":"Cabo Verde","region":"EMEA"},"CR":{"name":"Costa Rica","region":"AMERICAS"},"CU":{"name":"Cuba","region":"AMERICAS"},"CW":{"name":"Curaçao","region":"AMERICAS"},"CX":{"name":"Christmas Island","region":"APAC"},"KY":{"name":"Cayman Islands","region":"AMERICAS"},"CY":{"name":"Cyprus","region":"APAC"},"CZ":{"name":"Czechia","region":"EMEA"},"DE":{"name":"Germany","region":"EMEA"},"DJ":{"name":"Djibouti","region":"EMEA"},"DM":{"name":"Dominica","region":"AMERICAS"},"DK":{"name":"Denmark","region":"EMEA"},"DO":{"name":"Dominican Republic","region":"AMERICAS"},"DZ":{"name":"Algeria","region":"EMEA"},"EC":{"name":"Ecuador","region":"AMERICAS"},"EG":{"name":"Egypt","region":"EMEA"},"ER":{"name":"Eritrea","region":"EMEA"},"EH":{"name":"Western Sahara","region":"EMEA"},"ES":{"name":"Spain","region":"EMEA"},"EE":{"name":"Estonia","region":"EMEA"},"ET":{"name":"Ethiopia","region":"EMEA"},"FI":{"name":"Finland","region":"EMEA"},"FJ":{"name":"Fiji","region":"APAC"},"FK":{"name":"Falkland Islands (Malvinas)","region":"AMERICAS"},"FR":{"name":"France","region":"EMEA"},"FO":{"name":"Faroe Islands","region":"EMEA"},"FM":{"name":"Micronesia, Federated States of","region":"APAC"},"GA":{"name":"Gabon","region":"EMEA"},"GB":{"name":"United Kingdom","region":"EMEA"},"GE":{"name":"Georgia","region":"APAC"},"GG":{"name":"Guernsey","region":"EMEA"},"GH":{"name":"Ghana","region":"EMEA"},"GI":{"name":"Gibraltar","region":"EMEA"},"GN":{"name":"Guinea","region":"EMEA"},"GP":{"name":"Guadeloupe","region":"AMERICAS"},"GM":{"name":"Gambia","region":"EMEA"},"GW":{"name":"Guinea-Bissau","region":"EMEA"},"GQ":{"name":"Equatorial Guinea","region":"EMEA"},"GR":{"name":"Greece","region":"EMEA"},"GD":{"name":"Grenada","region":"AMERICAS"},"GL":{"name":"Greenland","region":"AMERICAS"},"GT":{"name":"Guatemala","region":"AMERICAS"},"GF":{"name":"French Guiana","region":"AMERICAS"},"GU":{"name":"Guam","region":"APAC"},"GY":{"name":"Guyana","region":"AMERICAS"},"HK":{"name":"Hong Kong","region":"APAC"},"HM":{"name":"Heard Island and McDonald Islands","region":"APAC"},"HN":{"name":"Honduras","region":"AMERICAS"},"HR":{"name":"Croatia","region":"EMEA"},"HT":{"name":"Haiti","region":"AMERICAS"},"HU":{"name":"Hungary","region":"EMEA"},"ID":{"name":"Indonesia","region":"APAC"},"IM":{"name":"Isle of Man","region":"EMEA"},"IN":{"name":"India","region":"APAC"},"IO":{"name":"British Indian Ocean Territory","region":"APAC"},"IE":{"name":"Ireland","region":"EMEA"},"IR":{"name":"Iran","region":"APAC"},"IQ":{"name":"Iraq","region":"APAC"},"IS":{"name":"Iceland","region":"EMEA"},"IL":{"name":"Israel","region":"APAC"},"IT":{"name":"Italy","region":"EMEA"},"JM":{"name":"Jamaica","region":"AMERICAS"},"JE":{"name":"Jersey","region":"EMEA"},"JO":{"name":"Jordan","region":"APAC"},"JP":{"name":"Japan","region":"APAC"},"KZ":{"name":"Kazakhstan","region":"APAC"},"KE":{"name":"Kenya","region":"EMEA"},"KG":{"name":"Kyrgyzstan","region":"APAC"},"KH":{"name":"Cambodia","region":"APAC"},"KI":{"name":"Kiribati","region":"APAC"},"KN":{"name":"Saint Kitts and Nevis","region":"AMERICAS"},"KR":{"name":"South Korea","region":"APAC"},"KW":{"name":"Kuwait","region":"APAC"},"LA":{"name":"Laos","region":"APAC"},"LB":{"name":"Lebanon","region":"APAC"},"LR":{"name":"Liberia","region":"EMEA"},"LY":{"name":"Libya","region":"EMEA"},"LC":{"name":"Saint Lucia","region":"AMERICAS"},"LI":{"name":"Liechtenstein","region":"EMEA"},"LK":{"name":"Sri Lanka","region":"APAC"},"LS":{"name":"Lesotho","region":"EMEA"},"LT":{"name":"Lithuania","region":"EMEA"},"LU":{"name":"Luxembourg","region":"EMEA"},"LV":{"name":"Latvia","region":"EMEA"},"MO":{"name":"Macao","region":"APAC"},"MF":{"name":"Saint Martin (French part)","region":"AMERICAS"},"MA":{"name":"Morocco","region":"EMEA"},"MC":{"name":"Monaco","region":"EMEA"},"MD":{"name":"Moldova","region":"EMEA"},"MG":{"name":"Madagascar","region":"EMEA"},"MV":{"name":"Maldives","region":"APAC"},"MX":{"name":"Mexico","region":"AMERICAS"},"MH":{"name":"Marshall Islands","region":"APAC"},"MK":{"name":"North Macedonia","region":"EMEA"},"ML":{"name":"Mali","region":"EMEA"},"MT":{"name":"Malta","region":"EMEA"},"MM":{"name":"Myanmar","region":"APAC"},"ME":{"name":"Montenegro","region":"EMEA"},"MN":{"name":"Mongolia","region":"APAC"},"MP":{"name":"Northern Mariana Islands","region":"APAC"},"MZ":{"name":"Mozambique","region":"EMEA"},"MR":{"name":"Mauritania","region":"EMEA"},"MS":{"name":"Montserrat","region":"AMERICAS"},"MQ":{"name":"Martinique","region":"AMERICAS"},"MU":{"name":"Mauritius","region":"EMEA"},"MW":{"name":"Malawi","region":"EMEA"},"MY":{"name":"Malaysia","region":"APAC"},"YT":{"name":"Mayotte","region":"EMEA"},"NA":{"name":"Namibia","region":"EMEA"},"NC":{"name":"New Caledonia","region":"APAC"},"NE":{"name":"Niger","region":"EMEA"},"NF":{"name":"Norfolk Island","region":"APAC"},"NG":{"name":"Nigeria","region":"EMEA"},"NI":{"name":"Nicaragua","region":"AMERICAS"},"NU":{"name":"Niue","region":"APAC"},"NL":{"name":"Netherlands","region":"EMEA"},"NO":{"name":"Norway","region":"EMEA"},"NP":{"name":"Nepal","region":"APAC"},"NR":{"name":"Nauru","region":"APAC"},"NZ":{"name":"New Zealand","region":"APAC"},"OM":{"name":"Oman","region":"APAC"},"PK":{"name":"Pakistan","region":"APAC"},"PA":{"name":"Panama","region":"AMERICAS"},"PN":{"name":"Pitcairn","region":"APAC"},"PE":{"name":"Peru","region":"AMERICAS"},"PH":{"name":"Philippines","region":"APAC"},"PW":{"name":"Palau","region":"APAC"},"PG":{"name":"Papua New Guinea","region":"APAC"},"PL":{"name":"Poland","region":"EMEA"},"PR":{"name":"Puerto Rico","region":"AMERICAS"},"KP":{"name":"North Korea","region":"APAC"},"PT":{"name":"Portugal","region":"EMEA"},"PY":{"name":"Paraguay","region":"AMERICAS"},"PS":{"name":"Palestine, State of","region":"APAC"},"PF":{"name":"French Polynesia","region":"APAC"},"QA":{"name":"Qatar","region":"APAC"},"RE":{"name":"Réunion","region":"EMEA"},"RO":{"name":"Romania","region":"EMEA"},"RU":{"name":"Russian Federation","region":"EMEA"},"RW":{"name":"Rwanda","region":"EMEA"},"SA":{"name":"Saudi Arabia","region":"APAC"},"SD":{"name":"Sudan","region":"EMEA"},"SN":{"name":"Senegal","region":"EMEA"},"SG":{"name":"Singapore","region":"APAC"},"GS":{"name":"South Georgia and the South Sandwich Islands","region":"AMERICAS"},"SH":{"name":"Saint Helena, Ascension and Tristan da Cunha","region":"EMEA"},"SJ":{"name":"Svalbard and Jan Mayen","region":"EMEA"},"SB":{"name":"Solomon Islands","region":"APAC"},"SL":{"name":"Sierra Leone","region":"EMEA"},"SV":{"name":"El Salvador","region":"AMERICAS"},"SM":{"name":"San Marino","region":"EMEA"},"SO":{"name":"Somalia","region":"EMEA"},"PM":{"name":"Saint Pierre and Miquelon","region":"AMERICAS"},"RS":{"name":"Serbia","region":"EMEA"},"SS":{"name":"South Sudan","region":"EMEA"},"ST":{"name":"Sao Tome and Principe","region":"EMEA"},"SR":{"name":"Suriname","region":"AMERICAS"},"SK":{"name":"Slovakia","region":"EMEA"},"SI":{"name":"Slovenia","region":"EMEA"},"SE":{"name":"Sweden","region":"EMEA"},"SZ":{"name":"Eswatini","region":"EMEA"},"SX":{"name":"Sint Maarten (Dutch part)","region":"AMERICAS"},"SC":{"name":"Seychelles","region":"EMEA"},"SY":{"name":"Syria","region":"APAC"},"TC":{"name":"Turks and Caicos Islands","region":"AMERICAS"},"TD":{"name":"Chad","region":"EMEA"},"TG":{"name":"Togo","region":"EMEA"},"TH":{"name":"Thailand","region":"APAC"},"TJ":{"name":"Tajikistan","region":"APAC"},"TK":{"name":"Tokelau","region":"APAC"},"TM":{"name":"Turkmenistan","region":"APAC"},"TL":{"name":"Timor-Leste","region":"EMEA"},"TO":{"name":"Tonga","region":"APAC"},"TT":{"name":"Trinidad and Tobago","region":"AMERICAS"},"TN":{"name":"Tunisia","region":"EMEA"},"TR":{"name":"Türkiye","region":"APAC"},"TV":{"name":"Tuvalu","region":"APAC"},"TW":{"name":"Taiwan","region":"APAC"},"TZ":{"name":"Tanzania","region":"EMEA"},"UG":{"name":"Uganda","region":"EMEA"},"UA":{"name":"Ukraine","region":"EMEA"},"UM":{"name":"United States Minor Outlying Islands","region":"AMERICAS"},"UY":{"name":"Uruguay","region":"AMERICAS"},"US":{"name":"United States","region":"AMERICAS"},"UZ":{"name":"Uzbekistan","region":"APAC"},"VA":{"name":"Holy See (Vatican City State)","region":"EMEA"},"VC":{"name":"Saint Vincent and the Grenadines","region":"AMERICAS"},"VE":{"name":"Venezuela","region":"AMERICAS"},"VG":{"name":"Virgin Islands, British","region":"AMERICAS"},"VI":{"name":"Virgin Islands, U.S.","region":"AMERICAS"},"VN":{"name":"Vietnam","region":"APAC"},"VU":{"name":"Vanuatu","region":"APAC"},"WF":{"name":"Wallis and Futuna","region":"APAC"},"WS":{"name":"Samoa","region":"APAC"},"YE":{"name":"Yemen","region":"APAC"},"ZA":{"name":"South Africa","region":"EMEA"},"ZM":{"name":"Zambia","region":"EMEA"},"ZW":{"name":"Zimbabwe","region":"EMEA"},"XK":{"name":"Kosovo","region":"EMEA"}},"psps":[{"name":"psp1","offerings":[{"method":"Interac","type":"bank","direction":"both","mode":"include","countries":["CA"]},{"method":"eCashout","type":"bank","direction":"out","mode":"include","countries":["CA"]}]},{"name":"psp2","offerings":[{"method":"Cards","type":"card","direction":"in","mode":"include","countries":["AD","AL","AM","BA","BE","BG","CA","CH","CY","CZ","DK","EE","FI","GE","GG","GI","GR","HR","HU","IE","IS","IT","LI","LT","LU","MC","MD","ME","MK","MT","NO","NZ","PT","RO","RS","SI","SK","SM","VA"]}]},{"name":"psp3","offerings":[{"method":"Cards","type":"card","direction":"in","mode":"exclude","brand":"Mastercard","countries":["AF","AL","BA","BB","BF","BI","BM","BY","CD","CF","CG","CI","CU","ER","ET","GB","GN","GW","HK","HT","IQ","IR","JM","JO","KH","KP","KY","KZ","LB","LR","LV","LY","MA","ML","MM","MZ","NI","PA","PH","PK","PS","RU","SD","SN","SO","SS","SY","TL","TR","TT","TZ","UA","UG","US","VE","VU","WS","YE","ZW"]},{"method":"Cards","type":"card","direction":"in","mode":"exclude","brand":"Visa","countries":["AE","AF","AZ","BA","BB","BI","BM","BY","CA","CD","CF","CG","CI","CU","EG","ET","GB","GN","GW","HK","HT","IL","IN","IQ","IR","JM","JO","JP","KH","KP","KR","KY","KZ","LB","LY","ML","MM","MU","NI","PA","PH","PK","PS","RU","SD","SN","SO","SS","SY","TR","TT","TZ","UA","UG","UM","US","VE","VU","WS","YE","ZW"]},{"method":"Cards","type":"card","direction":"in","mode":"include","brand":"Visa/Mastercard","countries":["AD","AE","AG","AI","AL","AM","AO","AQ","AR","AS","AT","AU","AW","AX","BD","BE","BF","BG","BH","BJ","BL","BN","BO","BQ","BR","BS","BT","BV","BW","BZ","CA","CC","CH","CK","CL","CM","CN","CO","CR","CV","CW","CX","CY","CZ","DE","DJ","DK","DM","DO","DZ","EC","EE","EG","EH","ER","ES","FI","FJ","FK","FM","FO","FR","GA","GD","GE","GF","GG","GH","GI","GL","GM","GP","GQ","GR","GS","GT","GU","GY","HM","HN","HR","HU","ID","IE","IL","IM","IO","IS","IT","JE","KE","KG","KI","KM","KN","KR","KW","LA","LC","LI","LK","LR","LS","LT","LU","LV","MA","MC","MD","ME","MF","MG","MH","MK","MN","MO","MP","MQ","MR","MS","MT","MU","MV","MW","MX","MY","MZ","NA","NC","NE","NF","NG","NL","NO","NP","NR","NU","NZ","OM","PE","PF","PG","PL","PM","PN","PR","PT","PW","QA","RE","RO","RS","RW","SA","SB","SC","SE","SG","SH","SI","SJ","SK","SL","SM","SR","ST","SV","SX","SZ","TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TV","TW","UY","UZ","VA","VC","VG","VN","WF","YT","ZA","ZM"]},{"method":"OpenBanking","type":"bank","direction":"both","mode":"include","countries":["AD","AL","BE","BG","BL","CH","CZ","DK","EE","FI","GG","GR","HR","HU","IE","IM","IS","JE","LI","LT","LU","LV","MC","ME","NO","PL","PM","PT","RO","SE","SI","SK","SM","XK","YT"]}]},{"name":"psp4","offerings":[{"method":"Mobile Money","type":"mobile","direction":"in","mode":"include","countries":["KE","GH","ZM","CI","CM"]},{"method":"Bank Transfer","type":"bank","direction":"in","mode":"include","countries":["ZA"]},{"method":"PIX","type":"bank","direction":"in","mode":"include","countries":["BR"]},{"method":"PSE","type":"bank","direction":"in","mode":"include","countries":["CO"]},{"method":"Nequi","type":"ewallet","direction":"in","mode":"include","countries":["CO"]},{"method":"QRIS","type":"ewallet","direction":"in","mode":"include","countries":["AR"]},{"method":"Oxxo","type":"cash","direction":"in","mode":"include","countries":["MX"]},{"method":"SPEI","type":"bank","direction":"in","mode":"include","countries":["MX"]},{"method":"MACH","type":"ewallet","direction":"in","mode":"include","countries":["CL"]},{"method":"Webpay","type":"card","direction":"in","mode":"include","countries":["CL"]},{"method":"Pago46","type":"cash","direction":"in","mode":"include","countries":["CL"]},{"method":"Bank Transfer","type":"bank","direction":"in","mode":"include","countries":["CL"]},{"method":"QR","type":"ewallet","direction":"in","mode":"include","countries":["PE"]},{"method":"Cash","type":"cash","direction":"in","mode":"include","countries":["PE"]},{"method":"Bank Transfer","type":"bank","direction":"in","mode":"include","countries":["PE"]}]},{"name":"psp5","offerings":[{"method":"Cards","type":"card","direction":"both","mode":"exclude","countries":["AF","AL","AM","AO","AR","AS","AX","BA","BB","BD","BI","BO","BQ","BR","BS","BY","CD","CF","CG","CL","CM","CN","CO","CU","DZ","EC","EG","ET","FJ","GE","GG","GH","GQ","GS","GU","GW","HK","HN","HT","ID","IL","IN","IQ","IR","JE","JM","JP","KE","KG","KH","KP","KY","LA","LB","LC","LY","MA","ME","MG","MH","MK","ML","MM","MN","MO","MP","MX","MZ","NG","NI","NP","PA","PG","PH","PK","PS","PY","RU","RW","SD","SG","SL","SN","SO","SS","SY","SZ","TD","TG","TJ","TL","TN","TV","TW","UA","UG","UM","US","UZ","VE","VU","XK","YE","ZA","ZW"]}]},{"name":"psp6","offerings":[{"method":"Crypto","type":"crypto","direction":"both","mode":"exclude","countries":[]}]},{"name":"psp7","offerings":[{"method":"Cards","type":"card","direction":"in","mode":"include","countries":["BE","BG","CA","CH","CY","CZ","DK","EE","FI","GR","HR","HU","IE","IT","LT","LU","LV","MT","NZ","PL","PT","RO","SE","SI","SK","XK"]}]}],"license":{"AU":{"level":"blocked","reason":"Restricted by our license"},"AT":{"level":"blocked","reason":"Restricted by our license"},"KM":{"level":"blocked","reason":"Restricted by our license"},"FR":{"level":"blocked","reason":"Restricted by our license"},"DE":{"level":"blocked","reason":"Restricted by our license"},"IR":{"level":"blocked","reason":"Restricted by our license"},"MM":{"level":"blocked","reason":"Restricted by our license"},"NL":{"level":"blocked","reason":"Restricted by our license"},"KP":{"level":"blocked","reason":"Restricted by our license"},"ES":{"level":"blocked","reason":"Restricted by our license"},"GB":{"level":"blocked","reason":"Restricted by our license"},"US":{"level":"blocked","reason":"Restricted by our license"}}};</script>
+<script>
+const TYPES = {bank:"Bank", card:"Cards", ewallet:"E-Wallet", mobile:"Mobile Money", cash:"Cash", crypto:"Crypto"};
+const REGIONS = ["ALL","EMEA","APAC","AMERICAS"];
+let activeRegion = "AMERICAS";
+let activeCountry = null;
+let query = "";
+let showNames = false;
+
+// ---- core resolution: license gate wins over everything ----
+function resolve(iso){
+  if(DATA.license[iso]) return {blocked:true, reason:DATA.license[iso].reason, payin:[], payout:[]};
+  const payin=[], payout=[];
+  for(const psp of DATA.psps){
+    for(const off of psp.offerings){
+      const listed = off.countries.includes(iso);
+      const avail = off.mode==="include" ? listed : !listed;
+      if(!avail) continue;
+      const e={psp:psp.name, method:off.method, type:off.type, brand:off.brand||null, currencies:off.currencies||null};
+      if(off.direction==="in"||off.direction==="both") payin.push(e);
+      if(off.direction==="out"||off.direction==="both") payout.push(e);
+    }
+  }
+  return {blocked:false, payin, payout};
+}
+
+// universe: countries with any offering OR license-blocked
+const UNIVERSE = (()=>{
+  const set = new Set(Object.keys(DATA.license));
+  for(const psp of DATA.psps) for(const off of psp.offerings)
+    for(const iso of off.countries) if(DATA.countries[iso]) set.add(iso);
+  for(const iso of Object.keys(DATA.countries)){
+    if(set.has(iso)) continue;
+    const r=resolve(iso);
+    if(r.payin.length||r.payout.length) set.add(iso);
+  }
+  return [...set];
+})();
+
+const RANK={served:0,restricted:1,none:2};
+function classify(iso){
+  if(DATA.license[iso]) return "restricted";
+  const r=resolve(iso);
+  return (r.payin.length||r.payout.length) ? "served" : "none";
+}
+
+function inRegion(iso,region){ return region==="ALL" || (DATA.countries[iso] && DATA.countries[iso].region===region); }
+function countriesIn(region){
+  return UNIVERSE
+    .filter(iso => DATA.countries[iso] && inRegion(iso,region))
+    .filter(iso => !query || DATA.countries[iso].name.toLowerCase().includes(query))
+    .sort((a,b)=>DATA.countries[a].name.localeCompare(DATA.countries[b].name));
+}
+
+function regionCount(region){
+  return UNIVERSE.filter(iso=>DATA.countries[iso]&&inRegion(iso,region)&&classify(iso)==="served").length;
+}
+
+// ---- rendering ----
+function renderTabs(){
+  const t=document.getElementById("tabs");
+  t.innerHTML = REGIONS.map(r=>
+    `<button class="tab" role="tab" aria-selected="${r===activeRegion}" data-r="${r}">${r==="ALL"?"All":r}<span class="n">${regionCount(r)}</span></button>`
+  ).join("");
+  t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{activeRegion=b.dataset.r; renderList();});
+}
+
+function typeDots(iso){
+  const r=resolve(iso);
+  if(r.blocked) return `<span class="lock">🔒</span>`;
+  const types=new Set([...r.payin,...r.payout].map(e=>e.type));
+  if(!types.size) return `<span class="lock" style="opacity:.5">—</span>`;
+  return `<span class="mini">`+["bank","card","ewallet","mobile","cash","crypto"].filter(t=>types.has(t))
+    .map(t=>`<i style="background:var(--${t})"></i>`).join("")+`</span>`;
+}
+
+function renderList(){
+  renderTabs();
+  const list=document.getElementById("list");
+  const items=countriesIn(activeRegion);
+  if(!items.length){ list.innerHTML=`<div class="empty">No countries match “${query}”.</div>`; return; }
+  const served=items.filter(i=>classify(i)==="served").length;
+  const restr=items.filter(i=>classify(i)==="restricted").length;
+  const none=items.filter(i=>classify(i)==="none").length;
+  const parts=[`${served} served`]; if(restr)parts.push(`${restr} restricted`); if(none)parts.push(`${none} no coverage`);
+  list.innerHTML =
+    `<div class="grouphead">${activeRegion} · ${parts.join(" · ")}</div>`+
+    items.map(iso=>{
+      const cls=classify(iso);
+      return `<div class="citem ${cls}" data-iso="${iso}" aria-selected="${iso===activeCountry}">
+        <span>${DATA.countries[iso].name}</span>${typeDots(iso)}</div>`;
+    }).join("");
+  list.querySelectorAll(".citem").forEach(el=>el.onclick=()=>{activeCountry=el.dataset.iso; renderList(); renderDetail();});
+}
+
+const TYPE_ORDER={bank:0,card:1,ewallet:2,mobile:3,cash:4,crypto:5};
+function chipRow(entries){
+  const types=[...new Set(entries.map(e=>e.type))].sort((a,b)=>TYPE_ORDER[a]-TYPE_ORDER[b]);
+  if(!types.length) return `<div class="none">No methods available.</div>`;
+  return `<div class="chips">`+types.map(t=>`<span class="chip ${t}">${TYPES[t]}</span>`).join("")+`</div>`;
+}
+
+function methodRows(entries){
+  if(!entries.length) return "";
+  const order={bank:0,card:1,ewallet:2,mobile:3,cash:4,crypto:5};
+  const seen=new Set(), uniq=[];
+  for(const e of entries){const k=e.type+"|"+e.method; if(seen.has(k))continue; seen.add(k); uniq.push(e);}
+  uniq.sort((a,b)=>(order[a.type]-order[b.type])||a.method.localeCompare(b.method));
+  return `<div class="methods">`+uniq.map(e=>
+    `<div class="m"><span class="tag ${e.type}"></span><div class="body"><div class="name">${e.method}</div></div></div>`
+  ).join("")+`</div>`;
+}
+
+function renderDetail(){
+  const d=document.getElementById("detail");
+  if(!activeCountry){
+    d.innerHTML=`<div class="placeholder"><div class="big">Select a country</div><div>Pick one from the list to see its payment coverage.</div></div>`;
+    return;
+  }
+  const c=DATA.countries[activeCountry], r=resolve(activeCountry);
+  let html=`<h2 class="place">${c.name}</h2><div class="region-pill">${c.region}</div>`;
+  if(r.blocked){
+    html+=`<div class="blockbox"><div class="h">🔒 Restricted</div>
+      <p>${r.reason}. No payment methods can be offered here, regardless of provider availability.</p></div>`;
+    d.innerHTML=html; return;
+  }
+  if(!r.payin.length && !r.payout.length){
+    html+=`<div class="blockbox" style="border-color:var(--line);background:#faf9f3">
+      <div class="h" style="color:var(--muted)">No coverage</div>
+      <p style="color:var(--muted)">No provider currently offers pay-in or payout methods here. Not restricted by license — simply no coverage yet.</p></div>`;
+    d.innerHTML=html; return;
+  }
+  html+=`<div class="rule"></div>`;
+  html+=`<div class="dir"><h3>Payments <span style="color:var(--muted);font-weight:500;font-size:13px">(pay-in)</span></h3>${chipRow(r.payin)}${showNames?methodRows(r.payin):""}</div>`;
+  html+=`<div class="dir"><h3>Payouts <span style="color:var(--muted);font-weight:500;font-size:13px">(pay-out)</span></h3>${chipRow(r.payout)}${showNames?methodRows(r.payout):""}</div>`;
+  d.innerHTML=html;
+}
+
+document.getElementById("search").addEventListener("input",e=>{
+  query=e.target.value.trim().toLowerCase();
+  // jump to a region that has matches if current has none
+  if(query && !countriesIn(activeRegion).length){
+    const hit=REGIONS.find(r=>{const old=activeRegion;activeRegion=r;const n=countriesIn(r).length;activeRegion=old;return n;});
+    if(hit) activeRegion=hit;
+  }
+  renderList();
+});
+
+document.getElementById("toggleNames").addEventListener("change",e=>{showNames=e.target.checked; renderDetail();});
+
+renderList();
+renderDetail();
+</script>
+</body>
+</html>
